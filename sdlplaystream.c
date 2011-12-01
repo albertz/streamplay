@@ -112,8 +112,6 @@ int main (int argc, char** argv)
 	
 	play ();
 	while(1)
-	SDL_Delay (1000);
-	/* Speicher nur freigeben, wenn WAV nicht mehr spielt. */
-	// SDL_FreeWAV (sound_buffer);
+		SDL_Delay (1000);
 	return 0;
 }
