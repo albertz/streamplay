@@ -1,3 +1,9 @@
+// Mac:
+// gcc -I /Library/Frameworks/SDL.framework/Headers -I /Library/Frameworks/SDL_mixer.framework/Headers -framework SDL -framework SDL_mixer -framework Cocoa -D PORT=6661  sdlwav3.c MacMain.m -o sdlwav6661
+
+// Linux/Unix:
+// gcc -lSDL -D PORT=6662 sdlwav3.c -o sdlwav6662
+
 #include <SDL/SDL.h>
 #include <stdlib.h> 
 #include <signal.h>
