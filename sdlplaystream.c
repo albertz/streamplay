@@ -1,8 +1,8 @@
 // Mac:
-// gcc -I /Library/Frameworks/SDL.framework/Headers -I /Library/Frameworks/SDL_mixer.framework/Headers -framework SDL -framework SDL_mixer -framework Cocoa -D PORT=6661  sdlwav3.c MacMain.m -o sdlwav6661
+// gcc -I /Library/Frameworks/SDL.framework/Headers -I /Library/Frameworks/SDL_mixer.framework/Headers -framework SDL -framework SDL_mixer -framework Cocoa -D PORT=6661 sdlplaystream.c MacMain.m -o play6661
 
 // Linux/Unix:
-// gcc -lSDL -D PORT=6662 sdlwav3.c -o sdlwav6662
+// gcc -lSDL -D PORT=6662 sdlplaystream.c -o play6662
 
 #include <SDL/SDL.h>
 #include <stdlib.h> 
