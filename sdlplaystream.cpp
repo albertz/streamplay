@@ -1,8 +1,8 @@
 // Mac:
-// gcc -I /Library/Frameworks/SDL.framework/Headers -I /Library/Frameworks/SDL_mixer.framework/Headers -framework SDL -framework SDL_mixer -framework Cocoa sdlplaystream.c MacMain.m -o play
+// g++ -I /Library/Frameworks/SDL.framework/Headers -I /Library/Frameworks/SDL_mixer.framework/Headers -framework SDL -framework SDL_mixer -framework Cocoa sdlplaystream.cpp MacMain.m -o play
 
 // Linux/Unix:
-// gcc -lSDL sdlplaystream.c -o play
+// g++ -lSDL sdlplaystream.cpp -o play
 
 #include <SDL/SDL.h>
 #include <stdlib.h> 
@@ -29,14 +29,14 @@ Uint32 sound_len;
 Uint8 *sound_buffer;
 int sound_pos = 0;
 
-void sys_assert(int c, const char* msg) {
+void sys_assert(bool c, const char* msg) {
 	if(!c) {
 		fprintf(stderr, "system error: %s: %s\n", msg, strerror(errno));
 		exit(-1);
 	}
 }
 
-void sdl_assert(int c, const char* msg) {
+void sdl_assert(bool c, const char* msg) {
 	if(!c) {
 		fprintf(stderr, "SDL error: %s: %s\n", msg, SDL_GetError());
 		exit(-1);
@@ -62,9 +62,9 @@ void Callback (void *userdata, Uint8 *stream, int len)
 //	Uint8* data = malloc(len);
 //	SDL_MixAudio(stream, data, len, SDL_MIX_MAXVOLUME);
 //	free(data);
-	char data[128*1024];
+	Uint8 data[128*1024];
 	struct sockaddr_in sin;
-	int sinlen = sizeof(sin);
+	socklen_t sinlen = sizeof(sin);
 	int reclen = recvfrom(sock, data, sizeof(data), 0, (struct sockaddr *)&sin, &sinlen);
 	printf("received: %d\n", reclen);
 	sys_assert(reclen >= 0, "recvfrom error");
