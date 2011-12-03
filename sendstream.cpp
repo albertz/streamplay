@@ -21,11 +21,11 @@
 #include <vector>
 #include <string>
 
-int FREQ = 44100;
-int BITS_PER_SAMPLE = 16 * 2;
-int BYTES_PER_SAMPLE = BITS_PER_SAMPLE / 8;
-int BUF_SAMPLE_NUM = 4;
-int BUF_SIZE = BYTES_PER_SAMPLE * BUF_SAMPLE_NUM;
+const uint64_t FREQ = 44100;
+const uint64_t BITS_PER_SAMPLE = 16 * 2;
+const uint64_t BYTES_PER_SAMPLE = BITS_PER_SAMPLE / 8;
+const uint64_t BUF_SAMPLE_NUM = 4;
+const uint64_t BUF_SIZE = BYTES_PER_SAMPLE * BUF_SAMPLE_NUM;
 
 void sys_assert(bool c, const char* msg) {
 	if(!c) {
@@ -87,15 +87,26 @@ int main(int argc, char** argv) {
 	
 	for(auto t : targets)
 		printf("sending to %s:%d\n", t.ip.c_str(), t.port);
+	printf("buf size: %llu bytes\n", BUF_SIZE);
 	
-	while(1) {
-		char data[4096];
+	uint64_t starttime = getticks();
+	uint64_t c = 0;
+	while(true) {
+		char data[BUF_SIZE];
 		fread(data, 1, sizeof(data), stdin);
 		
 		for(Target& t : targets)
 			senddata(t.sock, data, sizeof(data), t.ip.c_str(), t.port);
-
-		usleep(50*  1000); // TODO ...
+		
+		c++;
+		while(true) {
+			uint64_t t = getticks() - starttime;
+			uint64_t expected_c = t * FREQ / 1000 / BUF_SAMPLE_NUM;
+			if(expected_c >= c) break;
+			usleep(500);
+		}
+		
+		if(c % 100000 == 0)
+			printf("send %llu MB\n", c * BUF_SIZE / 1024 / 1024);
 	}
-	
 }
