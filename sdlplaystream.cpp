@@ -1,8 +1,8 @@
 // Mac:
-// g++ -I /Library/Frameworks/SDL.framework/Headers -I /Library/Frameworks/SDL_mixer.framework/Headers -framework SDL -framework SDL_mixer -framework Cocoa sdlplaystream.cpp MacMain.m -o play
+// clang++ -std=c++0x -I /Library/Frameworks/SDL.framework/Headers -I /Library/Frameworks/SDL_mixer.framework/Headers -framework SDL -framework SDL_mixer -framework Cocoa sdlplaystream.cpp MacMain.m -o play
 
 // Linux/Unix:
-// g++ -lSDL sdlplaystream.cpp -o play
+// g++|clang++ -std=c++0x -lSDL sdlplaystream.cpp -o play
 
 #include <SDL/SDL.h>
 #include <stdlib.h> 
@@ -59,9 +59,6 @@ int sock = 0;
 void Callback (void *userdata, Uint8 *stream, int len)
 {
 	printf("expected len: %d\n", len);
-//	Uint8* data = malloc(len);
-//	SDL_MixAudio(stream, data, len, SDL_MIX_MAXVOLUME);
-//	free(data);
 	Uint8 data[128*1024];
 	struct sockaddr_in sin;
 	socklen_t sinlen = sizeof(sin);
@@ -73,8 +70,6 @@ void Callback (void *userdata, Uint8 *stream, int len)
 
 void play (void)
 {
-	//if (SDL_LoadWAV (stdin, &spec, &sound_buffer, &sound_len) == NULL)
-	//	exit (-1);
 	spec.callback = Callback;
 	sdl_assert(
 		SDL_OpenAudio (&spec, NULL) >= 0,
