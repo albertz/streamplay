@@ -1,8 +1,8 @@
 // Mac:
-// gcc -I /Library/Frameworks/SDL.framework/Headers -I /Library/Frameworks/SDL_mixer.framework/Headers -framework SDL -framework SDL_mixer -framework Cocoa -D PORT=6661 sdlplaystream.c MacMain.m -o play6661
+// gcc -I /Library/Frameworks/SDL.framework/Headers -I /Library/Frameworks/SDL_mixer.framework/Headers -framework SDL -framework SDL_mixer -framework Cocoa sdlplaystream.c MacMain.m -o play
 
 // Linux/Unix:
-// gcc -lSDL -D PORT=6662 sdlplaystream.c -o play6662
+// gcc -lSDL sdlplaystream.c -o play
 
 #include <SDL/SDL.h>
 #include <stdlib.h> 
@@ -29,17 +29,32 @@ Uint32 sound_len;
 Uint8 *sound_buffer;
 int sound_pos = 0;
 
+void sys_assert(int c, const char* msg) {
+	if(!c) {
+		fprintf(stderr, "system error: %s: %s\n", msg, strerror(errno));
+		exit(-1);
+	}
+}
+
+void sdl_assert(int c, const char* msg) {
+	if(!c) {
+		fprintf(stderr, "SDL error: %s: %s\n", msg, SDL_GetError());
+		exit(-1);
+	}
+}
+
 void init_sdl (void)
 {
-	if (SDL_Init (SDL_INIT_VIDEO|SDL_INIT_AUDIO) < 0)
-		exit (-1);
+	sdl_assert(
+		SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO) >= 0,
+		"SDL_Init failed");
 	atexit (SDL_Quit);
 	screen = SDL_SetVideoMode (640, 480, 16, SDL_HWSURFACE);
-	if (screen == NULL)
-		exit (-1);
+	sdl_assert(screen != NULL, "SDL_SetVideoMode failed");
 }
 
 int sock = 0;
+
 
 void Callback (void *userdata, Uint8 *stream, int len)
 {
@@ -52,10 +67,7 @@ void Callback (void *userdata, Uint8 *stream, int len)
 	int sinlen = sizeof(sin);
 	int reclen = recvfrom(sock, data, sizeof(data), 0, (struct sockaddr *)&sin, &sinlen);
 	printf("received: %d\n", reclen);
-	if(reclen < 0) {
-		printf("error: %s\n", strerror(errno));
-		exit(-1);
-	}
+	sys_assert(reclen >= 0, "recvfrom error");
 	SDL_MixAudio(stream, data, reclen, SDL_MIX_MAXVOLUME);
 }
 
@@ -64,35 +76,34 @@ void play (void)
 	//if (SDL_LoadWAV (stdin, &spec, &sound_buffer, &sound_len) == NULL)
 	//	exit (-1);
 	spec.callback = Callback;
-	if (SDL_OpenAudio (&spec, NULL) < 0)
-    {
-		printf ("Kann audio nicht öffnen: %s\n", SDL_GetError ());
-		exit (-1);
-    }
+	sdl_assert(
+		SDL_OpenAudio (&spec, NULL) >= 0,
+		"SDL_OpenAudio failed");
 	SDL_PauseAudio (0);
 }
 
 int createlistensocket(int port) {
 	int s = socket(AF_INET, SOCK_DGRAM, 0);
-	printf("socket: %d\n", s);
+	sys_assert(s > 0, "socket creation failed");
 	struct sockaddr_in sin;
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons(port);
 	sin.sin_addr.s_addr = INADDR_ANY;
 	int ret = bind(s, (struct sockaddr *)&sin, sizeof(sin));
-	printf("bind ret: %d\n", ret);
+	sys_assert(ret == 0, "bind failed");
 	return s;	
 }
 
 
 int main (int argc, char** argv)
 {
-//	signal(SIGINT, interrupt);
+	sys_assert(argc == 2, "usage: . <port>");
+	int port = atoi(argv[1]);
 	
-	// define PORT outside
-	sock = createlistensocket(PORT);
+	sock = createlistensocket(port);
+	printf("listening on %d\n", port);
 	
-	init_sdl ();
+	init_sdl();
 	signal(SIGPIPE, SIG_IGN);
 	signal(SIGINT, SIG_DFL);
 	
