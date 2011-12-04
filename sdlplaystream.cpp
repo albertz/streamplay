@@ -26,11 +26,6 @@
 #include <vector>
 
 
-SDL_Surface *screen;
-Uint32 sound_len;
-Uint8 *sound_buffer;
-int sound_pos = 0;
-
 void custom_assert(bool c, const char* msg) {
 	if(!c) {
 		fprintf(stderr, "custom error: %s\n", msg);
@@ -55,11 +50,9 @@ void sdl_assert(bool c, const char* msg) {
 void init_sdl (void)
 {
 	sdl_assert(
-		SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO) >= 0,
+		SDL_Init(SDL_INIT_AUDIO) >= 0,
 		"SDL_Init failed");
 	atexit (SDL_Quit);
-	screen = SDL_SetVideoMode (640, 480, 16, SDL_HWSURFACE);
-	sdl_assert(screen != NULL, "SDL_SetVideoMode failed");
 }
 
 int sock = 0;
@@ -76,7 +69,7 @@ void Callback (void *userdata, Uint8 *stream, int len)
 		//printf("WARNING: underrun, expected: %d, have: %lu\n", len, data.size());
 		while(data.size() < len) {
 			data_mutex.unlock();
-			SDL_Delay(1);
+			usleep(500);
 			data_mutex.lock();
 		}
 	}
