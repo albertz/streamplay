@@ -1,6 +1,5 @@
-// clang++ -std=c++0x sendstream.cpp -o sendstream
-// g++ -std=c++0x sendstream.cpp -o sendstream
-//  { while true; do cat ~/audiodump.wav; done; } | ./sendstream
+// g++|clang++ -std=c++0x sendstream.cpp -o sendstream
+// { while true; do cat ~/audiodump.wav; done; } | ./sendstream
 
 #include <stdio.h>
 #include <sys/types.h>
