@@ -1,5 +1,5 @@
 // Mac:
-// clang++ -std=c++0x -I /Library/Frameworks/SDL.framework/Headers -I /Library/Frameworks/SDL_mixer.framework/Headers -framework SDL -framework SDL_mixer -framework Cocoa sdlplaystream.cpp MacMain.m -o play
+// clang++ -stdlib=libc++ -I /Library/Frameworks/SDL.framework/Headers -I /Library/Frameworks/SDL_mixer.framework/Headers -framework SDL -framework SDL_mixer -framework Cocoa sdlplaystream.cpp MacMain.m -o play
 
 // Linux/Unix:
 // g++|clang++ -std=c++0x -lSDL sdlplaystream.cpp -o play
@@ -21,6 +21,9 @@
 #include <stdlib.h>
 #include <memory.h>
 #include <errno.h>
+#include <thread>
+#include <deque>
+#include <vector>
 
 
 SDL_Surface *screen;
@@ -54,18 +57,30 @@ void init_sdl (void)
 }
 
 int sock = 0;
-
+std::mutex data_mutex;
+std::deque<Uint8> data;
 
 void Callback (void *userdata, Uint8 *stream, int len)
 {
-	printf("expected len: %d\n", len);
-	Uint8 data[128*1024];
-	struct sockaddr_in sin;
-	socklen_t sinlen = sizeof(sin);
-	int reclen = recvfrom(sock, data, sizeof(data), 0, (struct sockaddr *)&sin, &sinlen);
-	printf("received: %d\n", reclen);
-	sys_assert(reclen >= 0, "recvfrom error");
-	SDL_MixAudio(stream, data, reclen, SDL_MIX_MAXVOLUME);
+	//printf("expected len: %d\n", len);
+
+	std::vector<Uint8> buf(len);
+	data_mutex.lock();
+	if(data.size() < len) {
+		printf("WARNING: underrun, expected: %d, have: %lu\n", len, data.size());
+		while(data.size() < len) {
+			data_mutex.unlock();
+			SDL_Delay(1);
+			data_mutex.lock();
+		}
+	}
+	std::deque<Uint8>::iterator j = data.begin();
+	for(int i = 0; i < len; ++i, ++j)
+		buf[i] = *j;
+	data.erase(data.begin(), j);
+	data_mutex.unlock();
+	
+	SDL_MixAudio(stream, &buf[0], buf.size(), SDL_MIX_MAXVOLUME);
 }
 
 void play (void)
@@ -90,8 +105,7 @@ int createlistensocket(int port) {
 }
 
 
-int main (int argc, char** argv)
-{
+int main (int argc, char** argv) {
 	sys_assert(argc == 2, "usage: . <port>");
 	int port = atoi(argv[1]);
 	
@@ -103,7 +117,25 @@ int main (int argc, char** argv)
 	signal(SIGINT, SIG_DFL);
 	
 	play ();
-	while(1)
-		SDL_Delay (1000);
+	uint64_t c = 0;
+	uint64_t recsum = 0;
+	while(true) {
+		c++;
+		Uint8 buf[128*1024];
+		struct sockaddr_in sin;
+		socklen_t sinlen = sizeof(sin);
+		int reclen = recvfrom(sock, buf, sizeof(buf), 0, (struct sockaddr *)&sin, &sinlen);
+		//printf("received: %d\n", reclen);
+		sys_assert(reclen >= 0, "recvfrom error");
+		recsum += reclen;
+		if(c % 100000 == 0)
+			printf("received %llu MB\n", recsum / 1024 / 1024);
+		{
+			std::lock_guard<std::mutex> lock(data_mutex);
+			for(int i = 0; i < reclen; ++i)
+				data.push_back(buf[i]);
+		}
+	}
+	
 	return 0;
 }
