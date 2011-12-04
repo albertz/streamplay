@@ -27,10 +27,16 @@
 
 
 SDL_Surface *screen;
-SDL_AudioSpec spec;
 Uint32 sound_len;
 Uint8 *sound_buffer;
 int sound_pos = 0;
+
+void custom_assert(bool c, const char* msg) {
+	if(!c) {
+		fprintf(stderr, "custom error: %s\n", msg);
+		exit(-1);
+	}
+}
 
 void sys_assert(bool c, const char* msg) {
 	if(!c) {
@@ -67,7 +73,7 @@ void Callback (void *userdata, Uint8 *stream, int len)
 	std::vector<Uint8> buf(len);
 	data_mutex.lock();
 	if(data.size() < len) {
-		printf("WARNING: underrun, expected: %d, have: %lu\n", len, data.size());
+		//printf("WARNING: underrun, expected: %d, have: %lu\n", len, data.size());
 		while(data.size() < len) {
 			data_mutex.unlock();
 			SDL_Delay(1);
@@ -85,10 +91,20 @@ void Callback (void *userdata, Uint8 *stream, int len)
 
 void play (void)
 {
+	SDL_AudioSpec spec;
+	spec.freq = 44100;
+	spec.format = AUDIO_S16LSB;
+	spec.channels = 2;
+	spec.samples = 32;
 	spec.callback = Callback;
+	spec.userdata = NULL;
+	SDL_AudioSpec spec_obtained;
 	sdl_assert(
-		SDL_OpenAudio (&spec, NULL) >= 0,
+		SDL_OpenAudio (&spec, &spec_obtained) >= 0,
 		"SDL_OpenAudio failed");
+	custom_assert(spec.freq == spec_obtained.freq, "freq 44.1kHz not supported");
+	custom_assert(spec.format == spec_obtained.format, "format S16LSB not supported");
+	custom_assert(spec.channels == spec_obtained.channels, "stereo not supported");	
 	SDL_PauseAudio (0);
 }
 
@@ -106,7 +122,7 @@ int createlistensocket(int port) {
 
 
 int main (int argc, char** argv) {
-	sys_assert(argc == 2, "usage: . <port>");
+	custom_assert(argc == 2, "usage: . <port>");
 	int port = atoi(argv[1]);
 	
 	sock = createlistensocket(port);
